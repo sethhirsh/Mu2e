@@ -7,7 +7,7 @@
   const double period = 1.0 / frequency;
 
   // Set number of trials 
-  const int numTrials = 10;
+  const int numTrials = 20;
 
   // Set number of functions to use
   const int numFunctions = 5;
@@ -37,10 +37,9 @@
   double shapingPower(1.0);
 
   // Create array to hold all of data
-  vector < vector <double> > totalData[numFunctions];
+  vector < vector <double> > totalData(numFunctions);
 
- // Loop to create and plot functions
-
+ // Loop to through each function to record data
   for(int is=0;is<numFunctions;is++)
   {
     // Leave 50 characters for name of function
@@ -58,7 +57,7 @@
     shapesn[is]->SetParameters(sd[is],shapingTime);
 
     //Create vector to contain TGraphs of simulated data
-   // vector< vector<double> > functionData(numTrials, vector<double>(numTrials));
+    vector < double > functionData(numTrials);
 
     // Loop through trials
     for (int i = 0; i < numTrials; i++)
@@ -73,6 +72,9 @@
           recordingTimes[0] = 0.0;
           recordingTimes[1] = 0.0;
 
+          // Initial variable to hold total trial value
+          double totalTrialValue = 0.0;
+
           // Loop through times and store data in vectors
           for (int j = 2; j < 10; j++)
           {
@@ -84,27 +86,24 @@
 
             // Evaluate function at current time and store in trial values
             trialValues[j] = shapesn[is]->Eval(currentTime);
+
+            // Add trial value to total trial value
+            totalTrialValue += trialValues[j];
           }
 
+          // Store total value for trial in function data vector
+          functionData[i] = totalTrialValue;
+
           // Create graph to hold trial data
-          TGraph *trialGraph = new TGraph(10, recordingTimes, trialValues);
+         // TGraph *trialGraph = new TGraph(10, recordingTimes, trialValues);
 
-/**          // Fit gauss curve to trial data from graph
-          TF1 *fittedCurve = new TF1("m1","gaus",85,95);
-          trialGraph->Fit(fittedCurve,"q","gaus"); **/
-
-          // Get parameter data from curve
-       /**  vector <double> trialParameters(3);
-         for (int k = 0;  k < 3; k++) 
-              trialParameters[k] = fittedCurve->GetParameter(0);
-
-          functionData[i] = trialParameters; **/
 
       }
+      totalData[is] = functionData;
 
       cout << is <<endl;
       // Store function data in total data
-      totalData[is] = functionData;
+      //totalData[is] = functionData;
      // cout << totalData[0][0][9] << endl;
 
     }
