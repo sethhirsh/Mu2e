@@ -1,16 +1,16 @@
 // This code is responsible for simulat
 {
   // Set Frequency for recording data (Hz)
-  const double frequency = 5.0e6;
+  const double frequency = 50.0e6;
 
-  // Compute period
-  const double period = 1.0 / frequency;
+  // Compute period (nanoseconds)
+  const double period = 1.0e9 / frequency;
 
   // Set number of trials 
-  const int numTrials = 20;
+  const int numTrials = 10000;
 
   // Set number of functions to use
-  const int numFunctions = 5;
+  const int numFunctions = 1;
 
   // Create array to store random values for initial data recording
   vector<double> startingTimes(numTrials);
@@ -18,16 +18,15 @@
   for (int i = 0; i < numTrials; i++)
   {
     // Store random values in vector
-    startingTimes[i] = R->Rndm();
+    startingTimes[i] = R->Rndm() * 20.0;
   }
 
   TF1* shapesn[5];
   TF1* shapest[5];
 
-  // Set standard deviations for each function????
-  double sd[5] = {5.0,4.0,3.0,2.0,1.0};
 
-  // Set shaping times for each function????
+  double sd[5] = {5.0,4.0,3.0,2.0,1.0};
+  
   double st[5] = {15.0,20.0,25.0,30.0,40.0};
 
   // Set shaping time
@@ -102,9 +101,7 @@
       totalData[is] = functionData;
 
       cout << is <<endl;
-      // Store function data in total data
-      //totalData[is] = functionData;
-     // cout << totalData[0][0][9] << endl;
-
     }
 }
+
+

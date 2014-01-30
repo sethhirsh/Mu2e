@@ -13,7 +13,7 @@ Set random initial starting time for recording (range of random value is 0:1st p
   const double period = 1.0 / frequency;
 
   // Set number of trials 
-  const double numTrials = 5;
+  const double numTrials = 100;
 
   // Create array to store random values for initial data recording
   vector<double> startingTimes(numTrials);
@@ -21,16 +21,14 @@ Set random initial starting time for recording (range of random value is 0:1st p
   for (int i = 0; i < numTrials; i++)
   {
     // Store random values in vector
-    startingTimes[i] = R->Rndm();
+    startingTimes[i] = R->Rndm()*20.0;
   }
 
   TF1* shapesn[5];
   TF1* shapest[5];
 
-  // Set standard deviations for each function
   double sd[5] = {5.0,4.0,3.0,2.0,1.0};
 
-  // Set shaping times for each function
   double st[5] = {15.0,20.0,25.0,30.0,40.0};
 
   // Set shaping time
@@ -65,7 +63,7 @@ Set random initial starting time for recording (range of random value is 0:1st p
   shapern->Draw();
 
   // Loop to create and plot functions
-  for(int is=0;is<5;++is)
+  for(int is=0;is<1;++is)
   {
     // Leave 50 characters for name of function
     char sname[50];
