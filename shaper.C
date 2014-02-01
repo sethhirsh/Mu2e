@@ -53,7 +53,7 @@ Set random initial starting time for recording (range of random value is 0:1st p
   char head[20];
   snprintf(head,20,"Shaping Time = %f",shapingTime);
   legn->SetHeader(head);
-  TH1F* shapern = new TH1F("shapern","Shaper Response;nsec;Normalized Response",100,0,200);
+  TH1F* shapern = new TH1F("shapern","Shaper Response;nsec;Normalized Response",100,-50,200);
 
   // Set range of plot
   shapern->SetMaximum(0.025);
@@ -74,7 +74,7 @@ Set random initial starting time for recording (range of random value is 0:1st p
     snprintf(stitle,50,"Shaping power = %f",sd[is]);
 
     // Add each function to shapesn array
-    shapesn[is]  = new TF1(sname,"(pow([0]*x/[1],[0])/([1]*TMath::Gamma([0])))*exp(-[0]*x/[1])",0,200);
+    shapesn[is]  = new TF1(sname,"(pow([0]*x/[1],[0])/([1]*TMath::Gamma([0])))*exp(-[0]*x/[1])",-30,10);
     
     // Set parameters
     shapesn[is]->SetParameters(sd[is],40.0);
