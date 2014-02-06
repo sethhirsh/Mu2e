@@ -1,4 +1,20 @@
-// This code is responsible for simulat
+#include "TTree.h"
+#include "TF1.h"
+#include "TMath.h"
+
+// Define struct to hold event data
+typedef struct
+{
+  float voltageValues[10]; 
+  float totalVoltage;
+  float startingTime;
+  float shapingPower;
+  float shapingTime;
+} TrialDataSet;
+
+
+void simulation()
+// This code is responsible for simulating the data
 {
   // Set Frequency for recording data (Hz)
   const float frequency = 50.0e6;
@@ -29,19 +45,9 @@
 
   const float st[5] = {15.0,20.0,25.0,30.0,40.0};
 
-  // Define struct to hold event data
-  typedef struct
-  {
-    float voltageValues[10]; 
-    float totalVoltage;
-    float startingTime;
-    float shapingPower;
-    float shapingTime;
-  } TrialDataSet;
-
   // Create file to store TTree of data
   TFile f("totalData.root","recreate");
-  TTree * totalData = new TTree("total data", "All of Data");
+  TTree * totalData = new TTree("totalData", "All of Data");
   TrialDataSet trialData;
   totalData->Branch("voltageValues", trialData.voltageValues, "voltageValues[10]/F");
   totalData->Branch("totalVoltage", &trialData.totalVoltage, "totalVoltage/F");
@@ -68,7 +74,7 @@
     snprintf(stitle,50,"Shaping Power = %f, Shaping Time = %f",sp[spIter],st[stIter]);
 
     // Add each function to shapesn array
-    shapesn[spIter][stIter] = new TF1(sname,"(pow([0]*x/[1],[0])/([1]*TMath::Gamma([0])))*exp(-[0]*x/[1])",-200,200);
+    shapesn[spIter][stIter] = new TF1(sname,voltageFunction,-200,200,2);
 
     // Set parameters for function
     shapesn[spIter][stIter]->SetParameters(sp[spIter],st[stIter]);
@@ -99,17 +105,67 @@
       // Add event to total data
       totalData->Fill();
       }
-    // Store total data in root file
-    totalData->Write();
 
     }
   }
+  // Store total data in root file
+  totalData->Write();
+}
+
+// Current function used to calculate voltage
+float voltageFunction(double *x, double *par)
+{
+  // Initial return value
+  float returnValue = 0.0;
+  // Set x value
+  float xValue = x[0];
+  
+  if (xValue > 0.0)
+  {
+   returnValue = (pow(par[0]*xValue/par[1],par[0])/(par[1]*TMath::Gamma(par[0])))*exp(-par[0]*xValue/par[1]);
+  }
+  return returnValue;
+}
+
+// Plot TProfile of data
+void plotTProfile()
+{
+// Load data file
+ TFile *f = new TFile("totalData.root");
+
+ // Convert data from file into TTree
+ TTree *tData = (TTree *)f->Get("totalData");
+
+ // Create canvas
+ TCanvas *c1 = new TCanvas("c1","Histogram Of Voltages",200,10,700,500);
+
+ // Create TProfile
+  TProfile* hprof  = new TProfile("hprof","Profile of voltage",10,-0.5,9.5);
+
+  for (int i = 0; i < 10; i++)
+  { 
+    char voltageValueString[50];
+    snprintf(voltageValueString,50,"voltageValues[%i]:%i",i,i);
+    tData->Project("+hprof",voltageValueString,"(shapingPower==5.0)&&(shapingTime==40.0)");
+  }
+  hprof->Draw();
+
+}
+
+
+
+
+
+
+
+
+
 
 
 // Plot data where shaping power is one
 
 // Create canvas
-TCanvas* ncan = new TCanvas("ncan","Shaper",800,800);
+/**TCanvas* ncan = new TCanvas("ncan","Shaper",800,800);
 
 // Create Legend
 TLegend* legn = new TLegend(0.6,0.6,0.9,0.9);
@@ -125,8 +181,7 @@ for (int i = 0; i < 5; i++)
     totalData->Draw("totalVoltage:startingTime",selection);
   else
     totalData->Draw("totalVoltage:startingTime",selection,"same");
-}
+} **/
 
 
 
-}
