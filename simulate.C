@@ -12,9 +12,8 @@ typedef struct
   float shapingTime;
 } TrialDataSet;
 
-
-void simulation()
-// This code is responsible for simulating the data
+// Writes and returns all of data for simulation
+TTree * simulation()
 {
   // Set Frequency for recording data (Hz)
   const float frequency = 50.0e6;
@@ -96,7 +95,7 @@ void simulation()
           float currentTime = startingTimes[i] + j * period - subtractedTime;
 
           // Evaluate function at current time and store in trial values
-          trialData.voltageValues[j] = shapesn[spIter][stIter]->Eval(currentTime);
+          trialData.voltageValues[j] = (shapesn[spIter][stIter]->Eval(currentTime));
 
           // Add trial value to total trial value
           trialData.totalVoltage += trialData.voltageValues[j];
@@ -105,11 +104,13 @@ void simulation()
       // Add event to total data
       totalData->Fill();
       }
-
     }
   }
   // Store total data in root file
   totalData->Write();
+
+  // return total data
+  return totalData;
 }
 
 // Current function used to calculate voltage
@@ -128,7 +129,7 @@ float voltageFunction(double *x, double *par)
 }
 
 // Plot TProfile of data
-void plotTProfile()
+TProfile * plotTProfile()
 {
 // Load data file
  TFile *f = new TFile("totalData.root");
@@ -137,7 +138,7 @@ void plotTProfile()
  TTree *tData = (TTree *)f->Get("totalData");
 
  // Create canvas
- TCanvas *c1 = new TCanvas("c1","Histogram Of Voltages",200,10,700,500);
+ //TCanvas *c1 = new TCanvas("c1","Histogram Of Voltages",200,10,700,500);
 
  // Create TProfile
   TProfile* hprof  = new TProfile("hprof","Profile of voltage",10,-0.5,9.5);
@@ -148,18 +149,48 @@ void plotTProfile()
     snprintf(voltageValueString,50,"voltageValues[%i]:%i",i,i);
     tData->Project("+hprof",voltageValueString,"(shapingPower==5.0)&&(shapingTime==40.0)");
   }
-  hprof->Draw();
+  return hprof;
+}
 
+// Creates projection for data and returns it as histogram
+TH1D* createProjection(TTree * data)
+{
+  data->Draw("totalVoltage>>hist","(shapingPower==5.0)&&(shapingTime==40.0)");
+  return hist;
+
+}
+
+// Fits function to a histogram
+void fitHistogramWithFunction(TH1D * hist, float (* function)(double *, double *) )
+{
+  hist->Fit(function);
+  hist->Draw();  
+}
+
+// Used to execute functions
+void run()
+{
+
+  simulation();
+  TFile *f = new TFile("totalData.root");
+  TTree *tData = (TTree *)f->Get("totalData");
+
+  // Create TF1 object from C function
+  TF1 * func = new TF1("voltageFunction",voltageFunction, 0,200,2);
+  createProjection(tData);
+
+  //func->SetParameters(5.0,40.0);
+
+  // Fit function to histogram
+  //hist->Fit("voltageFunction");
+  hist->Draw();
+
+  //hist->Draw();
 }
 
 
 
-
-
-
-
-
-
+//tData->Draw("totalVoltage:startingTime","(shapingPower==5.0)&&(shapingTime==40.0)");
 
 
 // Plot data where shaping power is one
