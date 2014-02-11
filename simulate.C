@@ -155,7 +155,7 @@ TProfile * plotTProfile()
 // Creates projection for data and returns it as histogram
 TH1D* createProjection(TTree * data)
 {
-  data->Draw("totalVoltage>>hist","(shapingPower==5.0)&&(shapingTime==40.0)");
+  data->Draw("voltageValues>>hist","(shapingPower==5.0)&&(shapingTime==40.0)");
   return hist;
 
 }
