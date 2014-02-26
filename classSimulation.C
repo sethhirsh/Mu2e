@@ -2,6 +2,7 @@
 #include "TF1.h"
 #include "TMath.h"
 #include "TRandom1.h"
+#include "TProfile.h"
 
 // Struct which contains all data recorded in simulation
 struct TrialDataSet
@@ -19,7 +20,7 @@ struct TrialDataSet
 
     TrialDataSet() : startingTime(0.0), shapingPower(0.0), shapingTime(0.0), spreadValue(0.0)
     {
-        for(int i=0;i<10;++i){
+        for(int i = 0 ;i < 10; ++i ){
             chargeValues[i] = 0.0;
             currentValues[i] = 0.0;
             measurementTimes[i] = 0.0;
@@ -30,7 +31,6 @@ struct TrialDataSet
     }
 };
 
-
 class ElectronSimulation
 {
 
@@ -39,10 +39,6 @@ private:
      // Take this away and input struct into simulate
 
     // Analysis functions will also be in this class
-    TProfile
-
-
-
 
     float randomGauss(float mean=0.0, float spread=1.0)
     {
@@ -50,10 +46,11 @@ private:
         return randomGenerator->Gaus(mean, spread);
     }
 
-    float randomUniform(float mean=0.5,float range=1.0)
+    // Note: Mean is not really mean
+    float randomUniform(float lowestValue,float range=1.0)
     {
         TRandom1 *randomGenerator = new TRandom1();
-        return (randomGenerator->Rndm()*range) + mean;
+        return (randomGenerator->Rndm()*range) + lowestValue;
     }
 
     void setMeasurementTimes(TrialDataSet&);
@@ -102,25 +99,65 @@ public:
     {
         // Create modelling function
         TF1 * func = new TF1("currentFunction", this->currentFunction, 0, 200, 2);
-        func->SetParameters(shapingTime, shapingPower);
+        func->SetParameters(shapingPower, shapingTime);
 
         eSimData.shapingTime = shapingTime;
         eSimData.shapingPower = shapingPower; 
 
         // Set uniform random starting time
-        eSimData.startingTime = randomUniform(0.5, period);
+        eSimData.startingTime = randomUniform(0.0, period);
 
         setMeasurementTimes(eSimData);
         setChargeValues(eSimData, func);
         setCurrentValues(eSimData);
         setVoltageValuesPreNoise(eSimData);
         setVoltageValuesPostNoise(eSimData);
-        setDigitalReadoutValues(eSimData);
+        setDigitalReadoutValues(eSimData); 
+
     }
 
 
+    void plotTProfile(TTree* treeData )
+    {
+        TProfile* hprof = new TProfile("hprof", "hprof", 10, -0.5, 9.5);
+      
+        for (int i = 0; i < 10; ++i)
+        { 
+            char chargeValueString[100];
+            snprintf(chargeValueString,100,"qChargeValues[%i]:%i",i,i);
+            treeData->Project("+hprof",chargeValueString);
+        }
+        hprof->Draw();
+    }
+
+    void plotHistogram(TTree* treeData )
+    {
+        treeData->Draw("qChargeValues");
+    }
+
+    void plotCurrentFunction(float shapingTime, float shapingPower)
+    {
+        TF1 * func = new TF1("currentFunction", this->currentFunction, 0, 200, 2);
+        func->SetParameters(shapingPower, shapingTime);
+        func->Draw();
+    }
+
+    void plotFittingFunction(float shiftedTime = 0.0, float scalingFactor = 1.0)
+    {
+        TF1 * func = new TF1("fittingFunction", this->fittingFunction, -20, 200, 2);
+        func->SetParameters(shiftedTime, scalingFactor);
+        func->Draw();
+    }
+
+    void fitChargeFunction(TrialDataSet& eSimData)
+    {
+         TF1 * func = new TF1("fittingFunction", this->fittingFunction, -20, 200, 2);
+
+    }
+
     // Other methods
     static float currentFunction(double*, double*);
+    static float fittingFunction(double*, double*);
 };
 
 // Current function used to calculate current
@@ -133,15 +170,33 @@ float ElectronSimulation::currentFunction(double *x, double *par)
   
   if (xValue > 0.0)
   {
-   returnValue = (pow(par[0]*xValue/par[1],par[0])/(par[1]*TMath::Gamma(par[0])))*exp(-par[0]*xValue/par[1]);
+    returnValue = (pow(par[0]*xValue/par[1],par[0])
+                  /(par[1]*TMath::Gamma(par[0])))
+                    *exp(-par[0]*xValue/par[1]);
   }
   return returnValue;
 }
 
+// Fitting funtion used for fitting
+// par[0] is shifted time
+float ElectronSimulation::fittingFunction(double *x, double *par)
+{
+    // These values must be doubles here
+    double shapingTime = 40.0;
+    double shapingPower = 5.0;
+
+    float returnValue = 0.0;
+
+    double currentX[1] = {x[0] - par[0]};
+    double currentParameters[2] = {shapingPower, shapingTime};
+
+    return par[1] * currentFunction(currentX, currentParameters);
+}
+
 const float ElectronSimulation::frequency = 50.0e6;
-const float ElectronSimulation::period = 1.0e9 / 50.0e6;
+const float ElectronSimulation::period = 20.0;
 const float ElectronSimulation::subtractedTime = 30.0;
-const float ElectronSimulation::averageTotalCharge = 0.02;
+const float ElectronSimulation::averageTotalCharge = 0.04;
 const float ElectronSimulation::currentChargeConversion = 1.0e3;
 const float ElectronSimulation::currentValueConversion = 0.02 * 1.0e3;
 const float ElectronSimulation::transimpedanceGain = 200.0;
@@ -151,23 +206,26 @@ const float ElectronSimulation::electronicNoiseRMS = 0.5;
 
 void ElectronSimulation::setMeasurementTimes(TrialDataSet& eSimData)
 {
-    for (int i = 0; i < 10; i++)
+    for (int i = 0; i < 10; ++i)
     {
-        eSimData.measurementTimes[i] = eSimData.startingTime + (i * period);
+        eSimData.measurementTimes[i] = eSimData.startingTime + (i * period) - subtractedTime;
     }
 }
 
 void ElectronSimulation::setChargeValues(TrialDataSet& eSimData, const TF1* func)
 {
-    for (int i = 0; i < 10; i++)
+    for (int i = 0; i < 10; ++i)
     {
-        eSimData.measurementTimes[i] = func->Eval(eSimData.measurementTimes[i]) * averageTotalCharge;
+        eSimData.chargeValues[i] = func->Eval(eSimData.measurementTimes[i]) * averageTotalCharge;
+
+        // Subtract initial charge value from all values
+        eSimData.chargeValues[i] -= eSimData.chargeValues[0];
     }
 }
 
 void ElectronSimulation::setCurrentValues(TrialDataSet& eSimData)
 {
-    for (int i = 0; i < 10; i++)
+    for (int i = 0; i < 10; ++i)
     {
         eSimData.currentValues[i] = eSimData.chargeValues[i] * currentChargeConversion;
     }
@@ -175,7 +233,7 @@ void ElectronSimulation::setCurrentValues(TrialDataSet& eSimData)
 
 void ElectronSimulation::setVoltageValuesPreNoise(TrialDataSet& eSimData)
 {
-    for (int i = 0; i < 10; i++)
+    for (int i = 0; i < 10; ++i)
     {
         eSimData.voltageValuesPreNoise[i] =  eSimData.currentValues[i] * transimpedanceGain;
     }
@@ -183,7 +241,7 @@ void ElectronSimulation::setVoltageValuesPreNoise(TrialDataSet& eSimData)
 
 void ElectronSimulation::setVoltageValuesPostNoise(TrialDataSet& eSimData)
 {
-    for (int i = 0; i < 10; i++)
+    for (int i = 0; i < 10; ++i)
     {
         eSimData.voltageValuesPostNoise[i] =  eSimData.voltageValuesPreNoise[i] 
                                             + randomGauss(0.0, electronicNoiseRMS);
@@ -192,20 +250,19 @@ void ElectronSimulation::setVoltageValuesPostNoise(TrialDataSet& eSimData)
 
 void ElectronSimulation::setDigitalReadoutValues(TrialDataSet& eSimData)
 {
-    for (int i = 0; i < 10; i++)
+    for (int i = 0; i < 10; ++i)
     {
         eSimData.digitalReadoutValues[i] = (int) (eSimData.voltageValuesPostNoise[i] * countVoltageConversion + pedestal);
     }
 }
 
 
-float sumArray(const float * array)
+float sumArray(const float * array, int arrayLength)
 {
     float sum = 0.0;
-    // Get length
-    int arrayLength = sizeof(array)/sizeof(*array);
 
-    for (int i = 0; i < arrayLength; i++){sum += array[i];}
+    // For some reason sizeof(array) / sizeof(*array) has weird output
+    for (int i = 0; i < arrayLength; ++i){sum = sum + array[i];}
 
     return sum;
 }
@@ -213,24 +270,53 @@ float sumArray(const float * array)
 
 
 
-void execute()
+TTree* execute()
 {
-    TTree * dataTree = new TTree() 
+
+    // q is simply a prefix for values which are a branch on the TTree
+    TTree * dataTree = new TTree("treeData", "treeData");
+    float qChargeValues[10];
+    float qTotalCharge;
+    float qMeasurementTimes[10];
+    float qCurrentValues[10];
+    float qVoltageValuesPreNoise[10];
+    float qVoltageValuesPostNoise[10];
+    int qDigitalReadoutValues[10];
+
+    dataTree->Branch("qChargeValues", qChargeValues, "qChargeValues[10]/F");
+    dataTree->Branch("qTotalCharge", &qTotalCharge, "qTotalCharge/F");
+    dataTree->Branch("qMeasurementTimes", qMeasurementTimes, "qMeasurementTimes[10]/F"); 
+    dataTree->Branch("qCurrentValues", qCurrentValues, "qCurrentValues[10]/F"); 
+    dataTree->Branch("qVoltageValuesPreNoise", qVoltageValuesPreNoise, "qVoltageValuesPreNoise[10]/F"); 
+    dataTree->Branch("qVoltageValuesPostNoise", qVoltageValuesPostNoise, "qVoltageValuesPostNoise[10]/F"); 
+    dataTree->Branch("qDigitalReadoutValues", qDigitalReadoutValues, "qDigitalReadoutValues[10]/I");
 
     const int numTrials = 1000; // Set number of trials
-    const float shapingTime = 5.0;
-    const float shapingPower = 40.0;
+    const float shapingTime = 40.0;
+    const float shapingPower = 5.0;
 
     ElectronSimulation * eSim = new ElectronSimulation();
 
-    for (int i = 0; i < numTrials; i++)
+    for (int i = 0; i < numTrials; ++i)
     {
         TrialDataSet eSimData;
         eSim->simulate(eSimData, shapingTime, shapingPower);
-        float totalCharge = sumArray(eSimData.chargeValues);
+
+        qTotalCharge = sumArray(eSimData.chargeValues, 10);
+
+        for (int j = 0; j<10; ++j)
+            {
+                qChargeValues[j] = eSimData.chargeValues[j];
+                qMeasurementTimes[j] = eSimData.measurementTimes[j];
+                qCurrentValues[j] = eSimData.currentValues[j];
+                qVoltageValuesPreNoise[j] = eSimData.voltageValuesPreNoise[j];
+                qVoltageValuesPostNoise[j] = eSimData.voltageValuesPostNoise[j];
+                qDigitalReadoutValues[j] = eSimData.digitalReadoutValues[j];
+            }
+        dataTree->Fill();
     }
 
-
+    return dataTree;
 
 
 }

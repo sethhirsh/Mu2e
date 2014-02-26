@@ -1,0 +1,10 @@
+Notes:
+
+Feb 25, 2014
+1. Subtract the starting value the initial value from all other values
+2. Fit function changing scaling factor, and initial time
+
+Feb 26, 2014
+1. Finish fit function
+2. Produce histograms of total charge (using sum method) for normal shaping Time
+3. Produce histogram of total charge (using difference between say 4th entry and 1st entry) for shaping time around 100 ns

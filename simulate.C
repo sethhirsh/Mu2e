@@ -234,7 +234,7 @@ TProfile * plotTProfileCountValues()
 // Creates projection for data and returns it as histogram
 TH1F* createProjectionTotalVoltage(TTree * data)
 {
-  data->Draw("totalVoltage>>hist","(shapingPower==5.0)&&(shapingTime==40.0)");
+  data->Draw();
   return hist;
 
 }

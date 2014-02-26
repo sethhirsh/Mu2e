@@ -44,5 +44,16 @@
 ./classSimulation_C.so: /usr/local/root/include/TError.h
 ./classSimulation_C.so: /usr/local/root/include/TRandom1.h
 ./classSimulation_C.so: /usr/local/root/include/TRandom.h
+./classSimulation_C.so: /usr/local/root/include/TProfile.h
+./classSimulation_C.so: /usr/local/root/include/TH1.h
+./classSimulation_C.so: /usr/local/root/include/TAxis.h
+./classSimulation_C.so: /usr/local/root/include/TAttAxis.h
+./classSimulation_C.so: /usr/local/root/include/TArrayC.h
+./classSimulation_C.so: /usr/local/root/include/TArrayS.h
+./classSimulation_C.so: /usr/local/root/include/TArrayF.h
+./classSimulation_C.so: /usr/local/root/include/Foption.h
+./classSimulation_C.so: /usr/local/root/include/TVectorFfwd.h
+./classSimulation_C.so: /usr/local/root/include/TVectorDfwd.h
+./classSimulation_C.so: /usr/local/root/include/TFitResultPtr.h
 ./classSimulation_C.so: /usr/local/root/include/cintdictversion.h /usr/local/root/include/RVersion.h
 classSimulation_C__ROOTBUILDVERSION= 5.34/01
