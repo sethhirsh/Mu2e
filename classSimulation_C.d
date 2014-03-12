@@ -55,5 +55,6 @@
 ./classSimulation_C.so: /usr/local/root/include/TVectorFfwd.h
 ./classSimulation_C.so: /usr/local/root/include/TVectorDfwd.h
 ./classSimulation_C.so: /usr/local/root/include/TFitResultPtr.h
+./classSimulation_C.so: /usr/local/root/include/TGraph.h
 ./classSimulation_C.so: /usr/local/root/include/cintdictversion.h /usr/local/root/include/RVersion.h
 classSimulation_C__ROOTBUILDVERSION= 5.34/01

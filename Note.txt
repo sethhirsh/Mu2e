@@ -8,3 +8,12 @@ Feb 26, 2014
 1. Finish fit function
 2. Produce histograms of total charge (using sum method) for normal shaping Time
 3. Produce histogram of total charge (using difference between say 4th entry and 1st entry) for shaping time around 100 ns
+
+Feb 28, 2014
+1. Compute integral 
+2. Produce histogram using fit function
+
+Mar 11, 2014
+Produced plot of qIntegralReadoutValue (it's essentially the scaling factor)
+1. Relatively normal distribution
+2. RMS / Mean ~ 0.0053

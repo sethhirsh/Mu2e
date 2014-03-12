@@ -3,6 +3,7 @@
 #include "TMath.h"
 #include "TRandom1.h"
 #include "TProfile.h"
+#include "TGraph.h"
 
 // Struct which contains all data recorded in simulation
 struct TrialDataSet
@@ -17,6 +18,7 @@ struct TrialDataSet
     float voltageValuesPreNoise[10];
     float voltageValuesPostNoise[10];
     int digitalReadoutValues[10];
+    float qIntegralReadoutValue;
 
     TrialDataSet() : startingTime(0.0), shapingPower(0.0), shapingTime(0.0), spreadValue(0.0)
     {
@@ -94,8 +96,56 @@ public:
 
     ElectronSimulation() {}
 
-    // Simulation
-    void simulate(TrialDataSet& eSimData, float shapingTime, float shapingPower)
+    float integrateFunc(float);
+
+    void simulate(TrialDataSet&, float, float);
+
+    void plotTProfile(TTree *);
+
+    void plotHistogram(TTree* treeData ) {
+        treeData->Draw("qChargeValues");}
+
+    void plotCurrentFunction(float shapingTime, float shapingPower)
+    {
+        TF1 * func = new TF1("currentFunction", this->currentFunction, -20, 200, 2);
+        func->SetParameters(shapingPower, shapingTime);
+        func->Draw();
+    }
+
+    void plotFittingFunction(float shiftedTime = 0.0, float scalingFactor = 1.0)
+    {
+        TF1 * func = new TF1("fittingFunction", this->fittingFunction, -20, 200, 2);
+        func->SetParameters(shiftedTime, scalingFactor);
+        func->Draw();
+    }
+
+    TF1* computeFunctionFit(TrialDataSet& eSimData)
+    {
+         TF1 * func = new TF1("fittingFunction", this->fittingFunction, -20, 200, 2);
+         //func->SetParameters(eSimData.startingTime - subtractedTime, 1.0);
+
+         // Convert digital readout values to floats
+         float floatReadoutValues[10];
+         for (int i = 0; i < 10; ++i){floatReadoutValues[i] = eSimData.digitalReadoutValues[i];}
+
+
+         TGraph *gr = new TGraph(10, eSimData.measurementTimes, floatReadoutValues);
+
+         gr->Fit(func, "QN");
+         return func;
+         
+      //  fitParameters[0] = fittedFunction->GetParameter(0);
+        // fitParameters[1] = fittedFunction->GetParameter(1);
+         
+    }
+
+    // Other methods
+    static float currentFunction(double*, double*);
+    static float fittingFunction(double*, double*);
+};
+
+ // Simulation
+    void ElectronSimulation::simulate(TrialDataSet& eSimData, float shapingTime, float shapingPower)
     {
         // Create modelling function
         TF1 * func = new TF1("currentFunction", this->currentFunction, 0, 200, 2);
@@ -117,7 +167,7 @@ public:
     }
 
 
-    void plotTProfile(TTree* treeData )
+    void ElectronSimulation::plotTProfile(TTree* treeData )
     {
         TProfile* hprof = new TProfile("hprof", "hprof", 10, -0.5, 9.5);
       
@@ -130,35 +180,6 @@ public:
         hprof->Draw();
     }
 
-    void plotHistogram(TTree* treeData )
-    {
-        treeData->Draw("qChargeValues");
-    }
-
-    void plotCurrentFunction(float shapingTime, float shapingPower)
-    {
-        TF1 * func = new TF1("currentFunction", this->currentFunction, 0, 200, 2);
-        func->SetParameters(shapingPower, shapingTime);
-        func->Draw();
-    }
-
-    void plotFittingFunction(float shiftedTime = 0.0, float scalingFactor = 1.0)
-    {
-        TF1 * func = new TF1("fittingFunction", this->fittingFunction, -20, 200, 2);
-        func->SetParameters(shiftedTime, scalingFactor);
-        func->Draw();
-    }
-
-    void fitChargeFunction(TrialDataSet& eSimData)
-    {
-         TF1 * func = new TF1("fittingFunction", this->fittingFunction, -20, 200, 2);
-
-    }
-
-    // Other methods
-    static float currentFunction(double*, double*);
-    static float fittingFunction(double*, double*);
-};
 
 // Current function used to calculate current
 float ElectronSimulation::currentFunction(double *x, double *par)
@@ -177,15 +198,14 @@ float ElectronSimulation::currentFunction(double *x, double *par)
   return returnValue;
 }
 
+
 // Fitting funtion used for fitting
 // par[0] is shifted time
 float ElectronSimulation::fittingFunction(double *x, double *par)
 {
     // These values must be doubles here
     double shapingTime = 40.0;
-    double shapingPower = 5.0;
-
-    float returnValue = 0.0;
+    double shapingPower = 1.0;
 
     double currentX[1] = {x[0] - par[0]};
     double currentParameters[2] = {shapingPower, shapingTime};
@@ -193,10 +213,22 @@ float ElectronSimulation::fittingFunction(double *x, double *par)
     return par[1] * currentFunction(currentX, currentParameters);
 }
 
+// Computes integral from 0 to inf for current function
+float ElectronSimulation::integrateFunc(float scalingFactor)
+{
+
+    // Since the function is already normalized the scaling factor will be the integral
+    return scalingFactor;
+}
+
+
+
+
+
 const float ElectronSimulation::frequency = 50.0e6;
 const float ElectronSimulation::period = 20.0;
 const float ElectronSimulation::subtractedTime = 30.0;
-const float ElectronSimulation::averageTotalCharge = 0.04;
+const float ElectronSimulation::averageTotalCharge = 0.02;
 const float ElectronSimulation::currentChargeConversion = 1.0e3;
 const float ElectronSimulation::currentValueConversion = 0.02 * 1.0e3;
 const float ElectronSimulation::transimpedanceGain = 200.0;
@@ -252,19 +284,65 @@ void ElectronSimulation::setDigitalReadoutValues(TrialDataSet& eSimData)
 {
     for (int i = 0; i < 10; ++i)
     {
-        eSimData.digitalReadoutValues[i] = (int) (eSimData.voltageValuesPostNoise[i] * countVoltageConversion + pedestal);
+
+        // Took out pedestal
+        eSimData.digitalReadoutValues[i] = (int) (eSimData.voltageValuesPostNoise[i] * countVoltageConversion);
     }
 }
+
+// This function essentially subtracts the first value from all other values
+/**void ElectronSimulation::differenceTotalReadoutValue(int *array)
+{
+    for (int i = 0; i < 10; ++i)
+    {
+
+    }
+} **/
 
 
 float sumArray(const float * array, int arrayLength)
 {
     float sum = 0.0;
-
     // For some reason sizeof(array) / sizeof(*array) has weird output
     for (int i = 0; i < arrayLength; ++i){sum = sum + array[i];}
-
     return sum;
+}
+
+int sumArray(const int * array, int arrayLength)
+{
+    int sum = 0;
+    // For some reason sizeof(array) / sizeof(*array) has weird output
+    for (int i = 0; i < arrayLength; ++i){sum = sum + array[i];}
+    return sum;
+}
+
+int maxArray(const int * array, int arrayLength)
+{
+    int maxValue = array[0];
+    for (int i = 1; i < arrayLength; ++i){
+        if (array[i] > maxValue) {maxValue = array[i];}
+    }
+    return maxValue;
+}
+
+
+
+
+
+// Current function not associated with Class
+// Used for testing purposes
+float currentFunction(double *x, double *par)
+{
+  ElectronSimulation esim;
+  return esim.currentFunction(x, par);
+}
+
+// Fitting function not associated with Class
+// Used for testing purposes
+float fittingFunction(double *x, double *par)
+{
+  ElectronSimulation esim;
+  return esim.fittingFunction(x, par);
 }
 
 
@@ -282,6 +360,11 @@ TTree* execute()
     float qVoltageValuesPreNoise[10];
     float qVoltageValuesPostNoise[10];
     int qDigitalReadoutValues[10];
+    float qFitShiftingTime;
+    float qFitScalingFactor;
+    int qTotalDigitalReadoutValue;
+    int qDifferenceDigitalReadoutValue;
+    float qIntegralReadoutValue;
 
     dataTree->Branch("qChargeValues", qChargeValues, "qChargeValues[10]/F");
     dataTree->Branch("qTotalCharge", &qTotalCharge, "qTotalCharge/F");
@@ -290,10 +373,16 @@ TTree* execute()
     dataTree->Branch("qVoltageValuesPreNoise", qVoltageValuesPreNoise, "qVoltageValuesPreNoise[10]/F"); 
     dataTree->Branch("qVoltageValuesPostNoise", qVoltageValuesPostNoise, "qVoltageValuesPostNoise[10]/F"); 
     dataTree->Branch("qDigitalReadoutValues", qDigitalReadoutValues, "qDigitalReadoutValues[10]/I");
+    dataTree->Branch("qFitShiftingTime", &qFitShiftingTime, "qFitShiftingTime/F");
+    dataTree->Branch("qFitScalingFactor", &qFitScalingFactor, "qFitScalingFactor/F");
+    dataTree->Branch("qTotalDigitalReadoutValue", &qTotalDigitalReadoutValue, "qTotalDigitalReadoutValue/I");
+    dataTree->Branch("qDifferenceDigitalReadoutValue", &qDifferenceDigitalReadoutValue, "qDifferenceDigitalReadoutValue/I");
+    dataTree->Branch("qIntegralReadoutValue", &qIntegralReadoutValue, "qIntegralReadoutValue/F");
 
-    const int numTrials = 1000; // Set number of trials
+
+    const int numTrials = 10000; // Set number of trials
     const float shapingTime = 40.0;
-    const float shapingPower = 5.0;
+    const float shapingPower = 1.0;
 
     ElectronSimulation * eSim = new ElectronSimulation();
 
@@ -303,6 +392,17 @@ TTree* execute()
         eSim->simulate(eSimData, shapingTime, shapingPower);
 
         qTotalCharge = sumArray(eSimData.chargeValues, 10);
+        qTotalDigitalReadoutValue = sumArray(eSimData.digitalReadoutValues, 10);
+        qDifferenceDigitalReadoutValue = maxArray(eSimData.digitalReadoutValues, 10) - eSimData.digitalReadoutValues[0];
+
+
+
+
+        TF1 * fittedFunction = eSim->computeFunctionFit(eSimData);
+        qFitShiftingTime = fittedFunction->GetParameter(0);
+        qFitScalingFactor = fittedFunction->GetParameter(1);
+        qIntegralReadoutValue = eSim->integrateFunc(qFitScalingFactor);
+        fittedFunction->Draw();
 
         for (int j = 0; j<10; ++j)
             {
@@ -320,7 +420,6 @@ TTree* execute()
 
 
 }
-
 
 
 
