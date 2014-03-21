@@ -17,3 +17,8 @@ Mar 11, 2014
 Produced plot of qIntegralReadoutValue (it's essentially the scaling factor)
 1. Relatively normal distribution
 2. RMS / Mean ~ 0.0053
+
+March 19, 2014
+1. Working on PPT
+2. Looking for reason why 20 ns shaping time distribution using integral method has such weird distribution. Possible reason: starting time of 10 - 30 ns has first nontrivial point at peak. In other words, the data points contain no information about rise of function to peak. This lack of information may cause smaller scaling factor. Refer to testing.C
+3. 
