@@ -123,6 +123,7 @@ public:
     {
          TF1 * func = new TF1("fittingFunction", this->fittingFunction, -20, 200, 2);
          //func->SetParameters(eSimData.startingTime - subtractedTime, 1.0);
+         func->SetParameters(50.0, 35700.0);
 
          // Convert digital readout values to floats
          float floatReadoutValues[10];

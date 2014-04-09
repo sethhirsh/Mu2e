@@ -1,6 +1,6 @@
 {
 
-	const float shapingTime = 40.0;
+	float shapingTime = 100.0;
 	const float shapingPower = 1.0;
 	const int numTrials = 10000;
 
@@ -16,10 +16,15 @@
 	{
 		TrialDataSet eSimData;
 		eSim->simulate(eSimData, shapingTime, shapingPower);
-		qTotalDigitalReadoutValue = sumArray(eSimData.digitalReadoutValues, 10);
+		qTotalDigitalReadoutValue = sumArray(eSimData.digitalReadoutValues, 7);
 		dataTree->Fill();
 
 	}
+
+
+
+	TH1I *hist = new TH1I("hist","hist",40,qTotalDigitalReadoutValue,qTotalDigitalReadoutValue+1.0);
+	hist->SetBit(TH1::kCanRebin);
 
 	dataTree->Draw("qTotalDigitalReadoutValue>>hist");
 	TAxis* xax = hist->GetXaxis();

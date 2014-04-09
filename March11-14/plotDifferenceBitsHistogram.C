@@ -1,8 +1,8 @@
 {
 
-	const float shapingTime = 20.0;
+	//float shapingTime = 100.0;
 	const float shapingPower = 1.0;
-	const int numTrials = 10000;
+	const int numTrials = 100000;
 
 	ElectronSimulation * eSim = new ElectronSimulation();
 
@@ -18,13 +18,14 @@
 	{
 		TrialDataSet eSimData;
 		eSim->simulate(eSimData, shapingTime, shapingPower);
-		qDifferenceDigitalReadoutValue = maxArray(eSimData.digitalReadoutValues, 10) 
+		qDifferenceDigitalReadoutValue = maxArray(eSimData.digitalReadoutValues, 7) 
 										- eSimData.digitalReadoutValues[0];
 		dataTree->Fill();
 
 	}
 
-	TH1I *hist = new TH1I("hist","hist",20,200.0,340.0);
+	TH1I *hist = new TH1I("hist","hist",40,qDifferenceDigitalReadoutValue,qDifferenceDigitalReadoutValue+1.0);
+	hist->SetBit(TH1::kCanRebin);
 	dataTree->Draw("qDifferenceDigitalReadoutValue>>hist");
 	TAxis* xax = hist->GetXaxis();
 	xax->SetTitle("Maximum Difference of Bits Per Trial");
