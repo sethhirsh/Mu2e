@@ -29,3 +29,17 @@ April 2, 2014
 1. Need to produce plots of each element of table of powerpoint
 2. Need to add Chi Square to display of fit function.
 3. Maybe improve fit function by making it the superposition of fit functions 
+
+April 10, 2014
+1. Work on getting superposition.
+2. Use chi-square
+3. Don't divide by mcenergy until after the fit (compare scalingFactors to mcenergy values and don't divide by mcenergy) - should expect a linear correlation.
+
+April 15, 2014
+1. Look at outliers in initialPlotMcenergyvsScalingFact.pdf
+2. 
+
+April 16, 2014
+1. Look at plots with bumps and see if you can get Fit to work with the 6 free parameters
+2. Look at chi-square plot and see where peak is.
+3. Shove fit parameters, mcenergies, etc. into TTree (let each have its own branch and start playing with it).
